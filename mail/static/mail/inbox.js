@@ -74,8 +74,8 @@ function load_mailbox(mailbox) {
 
         const newDiv = document.createElement('div');
         newDiv.className = 'card ';
-        newDiv.id = 'emailCard';
         
+
         const cardBody = document.createElement('div');
         cardBody.className = 'card-body';
         
@@ -90,10 +90,17 @@ function load_mailbox(mailbox) {
         const cardTimestamp = document.createElement('div');
         cardTimestamp.className = "card-footer text-muted";
         cardTimestamp.innerText = `Sent at: ${mail.timestamp}`;
+
+        const cardButton = document.createElement('a');
+        cardButton.className = 'btn btn-primary stretched-link';
+        cardButton.innerText = 'View Email';
+        cardButton.addEventListener('click', () => viewmail(mail.id));
         
+        
+        newDiv.appendChild(cardBody);
         cardBody.appendChild(cardTitle);
         cardBody.appendChild(cardSubject);
-        newDiv.appendChild(cardBody);
+        cardBody.appendChild(cardButton);
         newDiv.appendChild(cardTimestamp);
         email_view.appendChild(newDiv);
         
@@ -102,12 +109,30 @@ function load_mailbox(mailbox) {
 
   .catch(error => {
     console.log('Error:', error);
-  }); 
+  });   
+};
 
+function viewmail(email_id) {
 
-  // Show the mailbox name
-  
+  email = fetch(`/emails/${email_id}`)
+  .then(response => response.json())
+  .then (email => {
+    console.log(email)
 
-  
-  }
+    const modalTitle = document.getElementById('emailModalLabel')
+    const modalBody = document.getElementById('email-modal-body')
+
+    modalTitle.innerText = `Subject: ${email.subject}`
+    modalBody.innerHTML = `
+                <p><strong>From:</strong> ${email.sender}</p>
+                <p><strong>To:</strong> ${email.recipients}</p>
+                <p class="text-muted">Sent at: ${email.timestamp}</p>
+                <p>${email.body}</p>
+    `;
+    $('#emailModal').modal('show');
+  })
+  .catch(error => {
+    console.log('Modal Error:', error)
+  });
+};
 
