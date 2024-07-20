@@ -60,13 +60,54 @@ function load_mailbox(mailbox) {
   document.querySelector('#compose-view').style.display = 'none';
 
   // Get emails from API
-  fetch(`/emails/${mailbox}`)
+  emails = fetch(`/emails/${mailbox}`)
   .then(response => response.json())
-  .then(data => {
-    console.log(data)
-  });
+
+  .then(emails => {
+    console.log(emails)
+
+    email_view = document.getElementById('emails-view');
+    email_view.innerHTML = '';
+    email_view.innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
+
+    emails.forEach(mail => {
+
+        const newDiv = document.createElement('div');
+        newDiv.className = 'card ';
+        newDiv.id = 'emailCard';
+        
+        const cardBody = document.createElement('div');
+        cardBody.className = 'card-body';
+        
+        const cardTitle = document.createElement('h5');
+        cardTitle.className = 'card-title';
+        cardTitle.innerText = `From: ${mail.sender}`;
+  
+        const cardSubject = document.createElement('div');
+        cardSubject.className = 'card-text';
+        cardSubject.innerText = `Subject: ${mail.subject}`;
+
+        const cardTimestamp = document.createElement('div');
+        cardTimestamp.className = "card-footer text-muted";
+        cardTimestamp.innerText = `Sent at: ${mail.timestamp}`;
+        
+        cardBody.appendChild(cardTitle);
+        cardBody.appendChild(cardSubject);
+        newDiv.appendChild(cardBody);
+        newDiv.appendChild(cardTimestamp);
+        email_view.appendChild(newDiv);
+        
+    });
+  })
+
+  .catch(error => {
+    console.log('Error:', error);
+  }); 
+
+
   // Show the mailbox name
-  document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
+  
 
+  
+  }
 
-}
