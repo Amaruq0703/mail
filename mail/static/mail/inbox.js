@@ -6,8 +6,19 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelector('#archived').addEventListener('click', () => load_mailbox('archive'));
   document.querySelector('#compose').addEventListener('click', compose_email);
 
+  const archiveButton = document.querySelector('#archiveButton');
+  archiveButton.addEventListener('click', function() {
+        const emailId = this.getAttribute('data-email-id');
+        archiveEmail(emailId);
+    });
+
+  const replyButton = document.querySelector('#replyButton');
+  replyButton.addEventListener('click', function() {
+      const replyEmailId = this.getAttribute('data-email-id');
+      replyEmail(replyEmailId);
+    });
   // By default, load the inbox
-  load_mailbox('inbox');
+  load_mailbox('inbox')
 });
 
 function compose_email() {
@@ -22,13 +33,15 @@ function compose_email() {
   document.querySelector('#compose-body').value = '';
 
   //POST form to API
-  document.querySelector('#compose-form').onsubmit = function(){
+  document.querySelector('#compose-form').onsubmit = function(event) {
+    event.preventDefault()
     fetch('/emails', {
       method: 'POST',
       body: JSON.stringify({
           recipients: document.querySelector("#compose-recipients").value,
           subject: document.querySelector("#compose-subject").value,
-          body: document.querySelector("#compose-body").value
+          body: document.querySelector("#compose-body").value,
+          read: false
       })
     })
     .then(response => {
@@ -42,13 +55,14 @@ function compose_email() {
     .then(result => {
     // Print result
     console.log(result);
+    load_mailbox('sent');
 
     })
     .catch(error => {
       alert(error)
       console.log(error)
     });
-  load_mailbox('sent');
+  
   return false;
   };
 };
@@ -74,7 +88,18 @@ function load_mailbox(mailbox) {
 
         const newDiv = document.createElement('div');
         newDiv.className = 'card ';
-        
+
+        if (mail.read === false) {
+          newDiv.addEventListener('mouseover', () => {
+            newDiv.style.backgroundColor = 'lightgrey'
+          })
+          newDiv.addEventListener('mouseout', () => {
+            newDiv.style.backgroundColor = 'white'
+          })  
+        } else {
+          newDiv.style.backgroundColor = 'lightgrey'
+        }
+              
 
         const cardBody = document.createElement('div');
         cardBody.className = 'card-body';
@@ -92,8 +117,10 @@ function load_mailbox(mailbox) {
         cardTimestamp.innerText = `Sent at: ${mail.timestamp}`;
 
         const cardButton = document.createElement('a');
+        cardButton.setAttribute('data-email-id', mail.id);
         cardButton.className = 'btn btn-primary stretched-link';
         cardButton.innerText = 'View Email';
+        cardButton.style.opacity = '0';
         cardButton.addEventListener('click', () => viewmail(mail.id));
         
         
@@ -119,8 +146,28 @@ function viewmail(email_id) {
   .then (email => {
     console.log(email)
 
+
+    return fetch(`/emails/${email_id}`, {
+      method: 'PUT', 
+      body: JSON.stringify({ read: true })
+    })
+  .then(() => email);
+  })
+
+  .then(email => {
     const modalTitle = document.getElementById('emailModalLabel')
     const modalBody = document.getElementById('email-modal-body')
+    const archiveButton = document.getElementById('archiveButton')
+    const replyButton = document.getElementById('replyButton')
+
+    replyButton.setAttribute('data-email-id', email.id);
+    archiveButton.setAttribute('data-email-id', email.id);
+
+    if (email.archived === true) {
+      archiveButton.innerText = 'Unarchive'
+    } else {
+      archiveButton.innerText = 'Archive'
+    }
 
     modalTitle.innerText = `Subject: ${email.subject}`
     modalBody.innerHTML = `
@@ -128,11 +175,58 @@ function viewmail(email_id) {
                 <p><strong>To:</strong> ${email.recipients}</p>
                 <p class="text-muted">Sent at: ${email.timestamp}</p>
                 <p>${email.body}</p>
-    `;
+    `
     $('#emailModal').modal('show');
   })
   .catch(error => {
     console.log('Modal Error:', error)
+  })
+};
+
+function archiveEmail(email_id) {
+  archiveMail = fetch(`/emails/${email_id}`)
+  .then(response => response.json())
+  .then (archiveMail => {
+    console.log(archiveMail)
+
+    if (archiveMail.archived === false) {
+      return fetch(`/emails/${email_id}`, {
+        method: 'PUT', 
+        body: JSON.stringify({ archived: true })
+      }) 
+    } else {
+      return fetch(`/emails/${email_id}`, {
+        method: 'PUT', 
+        body: JSON.stringify({ archived: false })
+      }); 
+    };
+  });
+  load_mailbox('inbox')
+};
+  
+function replyEmail(email_id) {
+
+  email = fetch(`/emails/${email_id}`)
+
+  .then(response => response.json())
+  .then(email => {
+    compose_email();
+
+    const body = email.body;
+    const subject = email.subject;
+    const recipient = email.sender;
+    const timestamp = email.timestamp;
+
+    if (subject.split(" ", 1)[0] != "Re:") {
+      subject = "Re: " + subject;
+    }
+    document.querySelector('#compose-subject').value = subject;
+
+    document.getElementById("compose-recipients").value = recipient;
+    document.getElementById("compose-body").value = `On ${timestamp} ${recipient} wrote: ${body}`;
   });
 };
+
+
+
 
