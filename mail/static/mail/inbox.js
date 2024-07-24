@@ -213,17 +213,21 @@ function replyEmail(email_id) {
     compose_email();
 
     const body = email.body;
-    const subject = email.subject;
+    var subject = email.subject;
     const recipient = email.sender;
     const timestamp = email.timestamp;
 
-    if (subject.split(" ", 1)[0] != "Re:") {
+    if (subject.split(" ", 1)[0] !== "Re:") {
       subject = "Re: " + subject;
+      console.log("Condition met, prepending 'Re:' to subject");
+    } else {
+      console.log("Condition not met, subject already starts with 'Re:'");
     }
-    document.querySelector('#compose-subject').value = subject;
 
+    document.querySelector('#compose-subject').value = subject;
     document.getElementById("compose-recipients").value = recipient;
     document.getElementById("compose-body").value = `On ${timestamp} ${recipient} wrote: ${body}`;
+    console.log("Code executed successfully");
   });
 };
 
